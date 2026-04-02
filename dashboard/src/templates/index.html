@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Атмосфера — Дашборд агентов</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>Атмосфера — Команда AI-агентов (Wildberries)</h1>
+    </header>
+
+    <main>
+        <section>
+            <h2>Агенты</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Статус</th>
+                        <th>Модель</th>
+                        <th>Текущая задача</th>
+                    </tr>
+                </thead>
+                <tbody hx-get="/api/agents" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                    {% for a in agents %}
+                    <tr>
+                        <td>{% if a.status == 'online' %}🟢{% elif a.status == 'busy' %}🟡{% elif a.status == 'error' %}❌{% else %}🔴{% endif %}</td>
+                        <td>{{ a.agent_id }}</td>
+                        <td>{{ a.status }}</td>
+                        <td>{{ a.model or '—' }}</td>
+                        <td>{{ a.current_task_id[:8] ~ '...' if a.current_task_id else '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">Нет активных агентов</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Последние задачи</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>ID</th>
+                        <th>Тип</th>
+                        <th>Агент</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody hx-get="/api/tasks" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                    {% for t in tasks %}
+                    <tr>
+                        <td>{% if t.status.value == 'completed' %}✅{% elif t.status.value == 'failed' %}❌{% elif t.status.value == 'in_progress' %}🔄{% elif t.status.value == 'waiting_approval' %}🔔{% else %}⏳{% endif %}</td>
+                        <td>{{ t.id[:8] }}</td>
+                        <td>{{ t.type }}</td>
+                        <td>{{ t.assigned_to }}</td>
+                        <td>{{ t.status.value }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5">Нет задач</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <p>Атмосфера &copy; 2026 | Фаза 0</p>
+    </footer>
+</body>
+</html>
