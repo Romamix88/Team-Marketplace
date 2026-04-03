@@ -1,5 +1,5 @@
 agent_id: agent-wb-manager
-model: claude-opus-4-6
+model: x-ai/grok-4.20
 system_prompt_path: /app/agents/wb_manager/prompts/system.md
 
 mcp_modules:

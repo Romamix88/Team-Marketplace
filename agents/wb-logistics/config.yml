@@ -1,5 +1,5 @@
 agent_id: agent-wb-logistics
-model: claude-sonnet-4-6
+model: deepseek/deepseek-v3.2
 system_prompt_path: /app/agents/wb-logistics/prompts/system.md
 
 mcp_modules:
