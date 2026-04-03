@@ -101,7 +101,9 @@ class MessageBus:
     async def set_agent_status(self, status: AgentStatus) -> None:
         """Обновить статус агента."""
         key = f"agents:{status.agent_id}"
-        await self.redis.hset(key, mapping=json.loads(status.model_dump_json()))
+        # Фильтруем None-значения — Redis HSET не принимает None
+        data = {k: v for k, v in json.loads(status.model_dump_json()).items() if v is not None}
+        await self.redis.hset(key, mapping=data)
         await self.redis.sadd("agents:all", status.agent_id)
         await self.redis.expire(key, 300)  # TTL 5 мин (heartbeat обновляет)
 
