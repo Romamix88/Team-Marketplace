@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header
 from pydantic import BaseModel, Field
 
 # Добавляем корень проекта в sys.path для импорта shared
@@ -16,43 +16,48 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from shared.logging_config import setup_logging
 from shared.models import ToolCallRequest, ToolCallResponse
 
-from mcp_wb.src.auth.access import check_access, filter_tools
-from mcp_wb.src.modules.analytics import (
-    ANALYTICS_HANDLERS,
-    ANALYTICS_TOOLS,
-    get_nm_report,
-    get_orders,
-    get_sales,
-    get_stocks,
-)
-from mcp_wb.src.modules.warehouses import (
-    WAREHOUSE_HANDLERS,
-    WAREHOUSE_TOOLS,
-)
+from mcp_wb.src.auth.access import check_access, filter_tools, get_agent_token
+from mcp_wb.src.modules.analytics import ANALYTICS_HANDLERS, ANALYTICS_TOOLS
+from mcp_wb.src.modules.warehouses import WAREHOUSE_HANDLERS, WAREHOUSE_TOOLS
 from mcp_wb.src.wb_client import WBClient, WBApiError
 
 import structlog
 
 logger = structlog.get_logger()
 
-# Глобальный клиент WB
-_wb_client: WBClient | None = None
+# Пул WB-клиентов: по одному на каждого агента (с его токеном)
+_wb_clients: dict[str, WBClient] = {}
 
 # Объединённый реестр инструментов и обработчиков
 ALL_TOOLS = ANALYTICS_TOOLS + WAREHOUSE_TOOLS
 ALL_HANDLERS: dict[str, Any] = {**ANALYTICS_HANDLERS, **WAREHOUSE_HANDLERS}
 
 
+def _get_or_create_client(agent_id: str) -> WBClient | None:
+    """Получить или создать WB-клиент для агента."""
+    if agent_id in _wb_clients:
+        return _wb_clients[agent_id]
+
+    token = get_agent_token(agent_id)
+    if not token:
+        return None
+
+    client = WBClient(api_token=token)
+    _wb_clients[agent_id] = client
+    logger.info("wb_client_created", agent_id=agent_id)
+    return client
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Жизненный цикл приложения."""
-    global _wb_client
     setup_logging(component="mcp-wb")
-    _wb_client = WBClient()
     logger.info("mcp_wb_started", tools_count=len(ALL_TOOLS))
     yield
-    if _wb_client:
-        await _wb_client.close()
+    # Закрываем все клиенты
+    for agent_id, client in _wb_clients.items():
+        await client.close()
+    _wb_clients.clear()
     logger.info("mcp_wb_stopped")
 
 
@@ -66,6 +71,7 @@ async def health() -> dict[str, Any]:
         "status": "ok",
         "modules": ["analytics", "warehouses"],
         "tools_count": len(ALL_TOOLS),
+        "active_clients": list(_wb_clients.keys()),
     }
 
 
@@ -91,7 +97,7 @@ async def call_tool(
             success=False, error=f"Инструмент '{body.tool}' не найден"
         )
 
-    # Проверка доступа
+    # Проверка доступа к модулю
     tool_def = next((t for t in ALL_TOOLS if t["name"] == body.tool), None)
     if tool_def and x_agent_id:
         module = tool_def.get("module", "")
@@ -101,10 +107,22 @@ async def call_tool(
                 error=f"Доступ запрещён: агент '{x_agent_id}' не имеет доступа к модулю '{module}'",
             )
 
+    # Получаем WB-клиент с токеном этого агента
+    if not x_agent_id:
+        return ToolCallResponse(
+            success=False, error="Заголовок X-Agent-Id обязателен"
+        )
+
+    client = _get_or_create_client(x_agent_id)
+    if client is None:
+        return ToolCallResponse(
+            success=False,
+            error=f"WB-токен не настроен для агента '{x_agent_id}'",
+        )
+
     # Вызов обработчика
     try:
-        assert _wb_client is not None
-        result = await handler(client=_wb_client, **body.params)
+        result = await handler(client=client, **body.params)
         logger.info(
             "tool_called",
             tool=body.tool,

@@ -22,7 +22,12 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - WB_API_TOKEN=${WB_API_TOKEN}
+      - WB_TOKEN_LOGISTICS=${WB_TOKEN_LOGISTICS}
+      - WB_TOKEN_CONTENT=${WB_TOKEN_CONTENT}
+      - WB_TOKEN_MARKETING=${WB_TOKEN_MARKETING}
+      - WB_TOKEN_ANALYST=${WB_TOKEN_ANALYST}
+      - WB_TOKEN_ACCOUNTANT=${WB_TOKEN_ACCOUNTANT}
+      - WB_TOKEN_MANAGER=${WB_TOKEN_MANAGER}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       redis:

@@ -36,10 +36,10 @@ class WBClient:
 
     def __init__(
         self,
-        api_token: str | None = None,
+        api_token: str,
         config: dict | None = None,
     ) -> None:
-        self._token = api_token or os.getenv("WB_API_TOKEN", "")
+        self._token = api_token
         self._config = config or _load_config()
         wb = self._config["wb_api"]
         self._base_urls: dict[str, str] = wb["base_urls"]

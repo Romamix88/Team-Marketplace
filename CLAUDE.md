@@ -222,9 +222,15 @@ Team-Marketplace/
 
 ## Контакты и доступы
 
-- **Wildberries API**: токен получен (хранить в .env, НЕ коммитить)
+- **VPS**: 147.45.154.46 (Timeweb Cloud)
+- **Wildberries API**: 6 отдельных токенов (по одному на агента, принцип минимальных привилегий)
+  - `WB_TOKEN_LOGISTICS` — Статистика + Marketplace
+  - `WB_TOKEN_CONTENT` — Контент + Аналитика
+  - `WB_TOKEN_MARKETING` — Продвижение + Аналитика
+  - `WB_TOKEN_ANALYST` — Статистика + Аналитика + Цены
+  - `WB_TOKEN_ACCOUNTANT` — Финансы + Статистика
+  - `WB_TOKEN_MANAGER` — полный доступ
+- **RouterAI API key**: получен (хранить в .env, НЕ коммитить)
+- **Telegram Bot Token**: получен (хранить в .env, НЕ коммитить)
 - **1С тестовая база MCP**: atmosfera2-as.esit.info:18446
 - **1С боевая база**: [будет добавлено]
-- **RouterAI API key**: [будет добавлено]
-- **Telegram Bot Token**: [будет добавлено]
-- **VPS**: [будет добавлено — IP, провайдер]

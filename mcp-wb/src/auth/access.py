@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 import structlog
 
 logger = structlog.get_logger()
@@ -18,6 +20,29 @@ AGENT_ACCESS: dict[str, list[str]] = {
         "advertising", "analytics", "finance",
     ],
 }
+
+# Маппинг агент → переменная окружения с WB-токеном
+AGENT_TOKEN_ENV: dict[str, str] = {
+    "agent-wb-logistics": "WB_TOKEN_LOGISTICS",
+    "agent-wb-content": "WB_TOKEN_CONTENT",
+    "agent-wb-marketing": "WB_TOKEN_MARKETING",
+    "agent-wb-analyst": "WB_TOKEN_ANALYST",
+    "agent-wb-accountant": "WB_TOKEN_ACCOUNTANT",
+    "agent-wb-manager": "WB_TOKEN_MANAGER",
+}
+
+
+def get_agent_token(agent_id: str) -> str | None:
+    """Получить WB API-токен для конкретного агента."""
+    env_var = AGENT_TOKEN_ENV.get(agent_id)
+    if env_var is None:
+        logger.warning("agent_token_not_configured", agent_id=agent_id)
+        return None
+    token = os.getenv(env_var)
+    if not token:
+        logger.warning("agent_token_empty", agent_id=agent_id, env_var=env_var)
+        return None
+    return token
 
 
 def check_access(agent_id: str, module: str) -> bool:
