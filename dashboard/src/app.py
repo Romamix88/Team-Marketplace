@@ -45,8 +45,8 @@ async def index(request: Request) -> HTMLResponse:
     agents = await bus.get_all_agents()
     tasks = await task_mgr.get_recent_tasks(limit=20)
     return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "agents": agents, "tasks": tasks},
+        name="index.html",
+        context={"request": request, "agents": agents, "tasks": tasks},
     )
 
 
