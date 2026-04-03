@@ -1,96 +1,110 @@
 # CONTEXT.md — Текущее состояние проекта
 
-> Последнее обновление: 02 апреля 2026
-> Текущая фаза: **Фаза 0 — Фундамент (код написан, ожидает деплоя)**
+> Последнее обновление: 03 апреля 2026
+> Текущая фаза: **Фаза 0 завершена ✅ — готовы к Фазе 1**
 
 ## Что уже сделано
 
-### Проектирование
-- [x] Определена новая цель: автономная команда AI-агентов для управления кабинетом WB
-- [x] Определены 6 агентов WB и их зоны ответственности (руководитель, логист, контент, маркетолог, аналитик, бухгалтер)
-- [x] Определена модульная структура MCP-сервера WB (6 модулей: warehouses, content, prices, advertising, analytics, finance)
+### Проектирование ✅
+- [x] Определена цель: автономная команда AI-агентов для управления кабинетом WB
+- [x] Определены 6 агентов WB и их зоны ответственности
+- [x] Определена модульная структура MCP-сервера WB (6 модулей)
 - [x] Составлена дорожная карта из 4 фаз (~10 недель)
 - [x] Выбран подход к коммуникации агентов: Redis (pub/sub + очереди задач)
 - [x] Выбран канал связи с владельцем: Telegram-бот + веб-дашборд
-- [x] Выбран LLM-провайдер: RouterAI (routerai.ru) — единый API, оплата в рублях
-- [x] Определены модели под каждого агента (Claude Opus, Claude Sonnet, DeepSeek — по задачам)
-- [x] Обновлена документация проекта (CLAUDE.md, AGENTS.md, CONTEXT.md, PROJECT_SPEC.md)
+- [x] Выбран LLM-провайдер: RouterAI (routerai.ru)
+- [x] Определены модели под каждого агента
+- [x] Обновлена вся документация (CLAUDE.md, AGENTS.md, CONTEXT.md, PROJECT_SPEC.md)
 
-### Доступы
-- [x] WB API-токен получен
-- [ ] RouterAI аккаунт — НЕ СОЗДАН
-- [ ] Telegram Bot Token — НЕ ПОЛУЧЕН
-- [ ] VPS — НЕ АРЕНДОВАН
+### Доступы ✅
+- [x] WB API-токены — 6 раздельных токенов (по агенту, принцип минимальных привилегий)
+- [x] RouterAI API key — получен
+- [x] Telegram Bot Token — получен
+- [x] Telegram Admin Chat ID — получен
+- [x] VPS арендован — 147.45.154.46 (Timeweb Cloud)
 
-### Инфраструктура
-- [ ] VPS — НЕ АРЕНДОВАН
-- [x] Docker Compose — docker-compose.yml создан (Redis, MCP-WB, Telegram-бот, дашборд)
-- [x] .env.example — шаблон переменных окружения
-- [x] .gitignore — настроен
+### Инфраструктура — Фаза 0 ✅ (развёрнуто на VPS)
+- [x] VPS: 147.45.154.46, Timeweb Cloud, Docker + Docker Compose
+- [x] Redis 7 — шина сообщений (контейнер, healthy)
+- [x] MCP-сервер WB — модули analytics + warehouses (FastAPI, порт 8001)
+- [x] Telegram-бот — aiogram 3.x, команды /status, /tasks, inline-одобрения
+- [x] Дашборд — FastAPI + Jinja2 + HTMX (порт 8080, http://147.45.154.46:8080)
+- [x] docker-compose.yml — 4 сервиса: redis, mcp-wb, telegram-bot, dashboard
+- [x] .env — заполнен на VPS (6 WB-токенов, RouterAI, Telegram, Redis)
 
-### Код Фазы 0 (написан, ожидает деплоя на VPS)
-- [x] MCP-сервер WB — модули analytics + warehouses (только чтение)
-- [x] Базовый класс агента (BaseAgent) — LLM-цикл, MCP, Redis, approval
-- [x] Shared-модули: message_bus, task_manager, approval, models, logging_config
-- [x] Telegram-бот — команды /status, /tasks; одобрения inline-кнопками
-- [x] Дашборд — FastAPI + Jinja2 + HTMX (статусы агентов, задачи)
+### Код Фазы 0 ✅
+- [x] `shared/models.py` — Task, TaskStatus, AgentStatus, ApprovalRequest, ApprovalResult, ToolCallRequest/Response
+- [x] `shared/message_bus.py` — Redis: очереди задач (BLPOP), pub/sub, shared state, approval
+- [x] `shared/task_manager.py` — create_and_assign, update_status, get_recent
+- [x] `shared/approval.py` — request_approval (publish + poll), submit_approval_result
+- [x] `shared/logging_config.py` — structlog JSON
+- [x] `mcp-wb/src/wb_client.py` — httpx async, Bearer auth, retry (429→backoff), rate limit (semaphore)
+- [x] `mcp-wb/src/modules/analytics.py` — get_sales, get_orders, get_stocks, get_nm_report
+- [x] `mcp-wb/src/modules/warehouses.py` — get_warehouses, get_warehouse_stocks, get_supplies, get_supply_detail, get_offices
+- [x] `mcp-wb/src/auth/access.py` — AGENT_ACCESS, AGENT_TOKEN_ENV, get_agent_token, filter_tools
+- [x] `mcp-wb/src/server.py` — FastAPI: /tools/call, /tools/list, /health; пул клиентов по агентам (lazy init)
+- [x] `agents/base/tools.py` — McpClient (HTTP к MCP), RouterAIClient (OpenAI-compatible)
+- [x] `agents/base/agent.py` — BaseAgent: main loop, heartbeat, execute_task, LLM-цикл с tool calling
+- [x] `telegram-bot/src/bot.py` — /start, /status, /tasks, /help; approval listener (pub/sub); whitelist chat_id
+- [x] `dashboard/src/app.py` — FastAPI + Jinja2 + HTMX; авто-обновление каждые 5 сек
 
 ### 1С (отложено на Фазу 3+)
 - [ ] WireGuard туннель (VPS → офис) — НЕ НАСТРОЕН
 - [ ] Сервисные пользователи (ReadOnly, Operator) — НЕ СОЗДАНЫ
 - [ ] MCP-сервер 1С — НЕ РАЗРАБОТАН
 
-## Что делаем сейчас
+## Что делаем дальше
 
-### Ближайшие действия (Фаза 0 — Фундамент)
+### Фаза 1 — Аналитик + Логист (следующий шаг)
 
-**Со стороны CEO / IT-команды:**
-1. Арендовать VPS (4 vCPU, 8 ГБ RAM, 80 ГБ SSD, Ubuntu 24.04)
-2. Установить Docker + Docker Compose на VPS
-3. Зарегистрироваться на routerai.ru, получить API-ключ
-4. Создать Telegram-бота через @BotFather, получить токен
-5. Настроить WB API-токен (уже есть)
+**Что нужно разработать:**
+1. Модули MCP-WB: `prices` и `finance` (чтение)
+2. Агент `agent-wb-analyst`: config.yml, system.md (системный промпт), Dockerfile, agent.py
+3. Агент `agent-wb-logistics`: config.yml, system.md, Dockerfile, agent.py
+4. Добавить контейнеры агентов в docker-compose.yml
+5. Ежедневные отчёты в Telegram
+6. Тестирование на реальных данных WB
 
-**Со стороны Claude Code:**
-1. Разработать MCP-сервер WB (модули analytics + warehouses, только чтение)
-2. Разработать базовый класс агента (BaseAgent)
-3. Разработать shared-модули (message_bus, task_manager, models, approval)
-4. Разработать Telegram-бот (одобрения, отчёты)
-5. Настроить docker-compose.yml (MCP-WB, Redis, Telegram-бот, дашборд)
-6. Развернуть дашборд-заглушку (статус компонентов)
+**Результат Фазы 1:**
+- Ежедневные отчёты по продажам, маржинальности, остаткам
+- Рекомендации по ценам (с одобрением через Telegram)
+- План поставок (с одобрением через Telegram)
 
 ## Открытые вопросы
 
-1. **VPS-провайдер**: какой выбрать? Timeweb Cloud, Selectel или Hetzner
-2. **RouterAI бюджет**: оценить стоимость при планируемой нагрузке после пилота Фазы 1
-3. **Масштабирование VPS**: когда переходить с 8 ГБ на 16 ГБ RAM (ориентир — Фаза 2)
-4. **Ozon и ЯМ**: когда начинать адаптацию (после стабильной работы WB-команды)
-5. **1С интеграция**: на какой фазе подключать (ориентир — Фаза 3, для себестоимости и остатков)
+1. **RouterAI бюджет**: оценить стоимость при планируемой нагрузке после пилота Фазы 1
+2. **Масштабирование VPS**: когда переходить с 8 ГБ на 16 ГБ RAM (ориентир — Фаза 2)
+3. **Ozon и ЯМ**: когда начинать адаптацию (после стабильной работы WB-команды)
+4. **1С интеграция**: на какой фазе подключать (ориентир — Фаза 3)
+5. **Безопасность VPS**: настроить firewall (UFW), закрыть лишние порты, SSH-ключи вместо паролей
 
 ## Решения, принятые ранее
 
 | Дата | Решение | Обоснование |
 |---|---|---|
 | 01.04.2026 | Всё на VPS, без отдельного сервера в офисе | Упрощение инфраструктуры, единая точка управления |
-| 01.04.2026 | RouterAI как LLM-провайдер | Единый API ко всем моделям, оплата в рублях, отказоустойчивость |
-| 01.04.2026 | Модель подбирается под агента | Claude для сложного анализа, DeepSeek для рутины — оптимизация затрат |
-| 02.04.2026 | Фокус на маркетплейсы (WB первый) | Прямое влияние на продажи, быстрый ROI, масштабируемость на Ozon/ЯМ |
-| 02.04.2026 | Telegram + Дашборд для связи | Telegram — оперативные одобрения с телефона, дашборд — детальная аналитика |
-| 02.04.2026 | Только WB API на старте (без 1С) | Быстрый старт, минимум зависимостей, 1С подключим позже |
-| 02.04.2026 | Redis как шина сообщений | Лёгкий, быстрый, pub/sub + очереди, идеально для межагентной коммуникации |
-| 02.04.2026 | Human-in-the-loop через Telegram | Критичные операции требуют одобрения: цены, реклама, поставки, контент |
+| 01.04.2026 | RouterAI как LLM-провайдер | Единый API ко всем моделям, оплата в рублях |
+| 01.04.2026 | Модель подбирается под агента | Claude для сложного анализа, DeepSeek для рутины |
+| 02.04.2026 | Фокус на маркетплейсы (WB первый) | Прямое влияние на продажи, быстрый ROI |
+| 02.04.2026 | Telegram + Дашборд для связи | Telegram — одобрения, дашборд — аналитика |
+| 02.04.2026 | Только WB API на старте (без 1С) | Быстрый старт, минимум зависимостей |
+| 02.04.2026 | Redis как шина сообщений | pub/sub + очереди задач |
+| 02.04.2026 | Human-in-the-loop через Telegram | Критичные операции: цены, реклама, поставки, контент |
+| 03.04.2026 | 6 раздельных WB-токенов | Принцип минимальных привилегий, изоляция агентов |
+| 03.04.2026 | VPS: Timeweb Cloud 147.45.154.46 | Российский провайдер, оплата в рублях |
+| 03.04.2026 | MCP-сервер — HTTP REST (FastAPI) | Простота, Docker-совместимость, пул клиентов по агентам |
 
 ## Метрики проекта
 
 | Метрика | Значение |
 |---|---|
 | Всего агентов WB (план) | 6 |
-| Агентов в проде | 0 |
-| MCP-серверов (план) | 1 (WB) + 1 (1С, позже) |
-| MCP-серверов в проде | 0 |
+| Агентов в проде | 0 (BaseAgent готов, агенты запускаются в Фазе 1) |
+| MCP-серверов в проде | 1 (MCP-WB) |
+| Модулей MCP-WB в проде | 2 (analytics, warehouses) |
 | Модулей MCP-WB (план) | 6 |
-| Модулей MCP-WB в проде | 0 |
+| Инструментов MCP в проде | 9 |
 | Инструментов MCP (план) | ~40 |
-| Инструментов MCP в проде | 0 |
-| Текущая фаза | Подготовка к Фазе 0 |
-| Прогноз завершения | ~10 недель от старта Фазы 0 |
+| Контейнеров на VPS | 4 (redis, mcp-wb, telegram-bot, dashboard) |
+| Текущая фаза | Фаза 0 ✅ завершена |
+| Следующая фаза | Фаза 1 — Аналитик + Логист |
