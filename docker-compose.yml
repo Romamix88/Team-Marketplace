@@ -2,8 +2,9 @@ services:
   # === Redis — шина сообщений ===
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # Порт НЕ пробрасывается наружу — доступен только внутри Docker-сети
+    expose:
+      - "6379"
     volumes:
       - redis-data:/data
     command: redis-server --save 300 1

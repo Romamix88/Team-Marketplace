@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import os
+import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -18,12 +20,29 @@ from shared.message_bus import MessageBus
 from shared.task_manager import TaskManager
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "changeme")
 
 bus = MessageBus(REDIS_URL)
 task_mgr = TaskManager(bus)
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+security = HTTPBasic()
+
+
+def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)) -> str:
+    """Проверка логина и пароля."""
+    correct_username = secrets.compare_digest(credentials.username, DASHBOARD_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, DASHBOARD_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверный логин или пароль",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 
 @asynccontextmanager
@@ -40,7 +59,7 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request) -> HTMLResponse:
+async def index(request: Request, _user: str = Depends(verify_credentials)) -> HTMLResponse:
     """Главная страница дашборда."""
     agents = await bus.get_all_agents()
     tasks = await task_mgr.get_recent_tasks(limit=20)
@@ -50,7 +69,7 @@ async def index(request: Request) -> HTMLResponse:
 
 
 @app.get("/api/agents", response_class=HTMLResponse)
-async def agents_partial(request: Request) -> HTMLResponse:
+async def agents_partial(request: Request, _user: str = Depends(verify_credentials)) -> HTMLResponse:
     """HTMX-фрагмент: список агентов."""
     agents = await bus.get_all_agents()
     rows = ""
@@ -68,7 +87,7 @@ async def agents_partial(request: Request) -> HTMLResponse:
 
 
 @app.get("/api/tasks", response_class=HTMLResponse)
-async def tasks_partial(request: Request) -> HTMLResponse:
+async def tasks_partial(request: Request, _user: str = Depends(verify_credentials)) -> HTMLResponse:
     """HTMX-фрагмент: последние задачи."""
     tasks = await task_mgr.get_recent_tasks(limit=15)
     icons = {
@@ -88,5 +107,5 @@ async def tasks_partial(request: Request) -> HTMLResponse:
 
 @app.get("/health")
 async def health() -> dict:
-    """Проверка состояния."""
+    """Проверка состояния (без авторизации — для мониторинга)."""
     return {"status": "ok", "component": "dashboard"}
