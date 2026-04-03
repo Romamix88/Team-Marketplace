@@ -70,6 +70,42 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # === Агент: Руководитель (Фаза 3) ===
+  agent-wb-manager:
+    build:
+      context: .
+      dockerfile: agents/wb-manager/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_WB_URL=http://mcp-wb:8001
+      - ROUTERAI_API_KEY=${ROUTERAI_API_KEY}
+      - ROUTERAI_BASE_URL=${ROUTERAI_BASE_URL:-https://api.routerai.ru/v1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mcp-wb:
+        condition: service_started
+    restart: unless-stopped
+
+  # === Агент: Бухгалтер (Фаза 3) ===
+  agent-wb-accountant:
+    build:
+      context: .
+      dockerfile: agents/wb-accountant/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_WB_URL=http://mcp-wb:8001
+      - ROUTERAI_API_KEY=${ROUTERAI_API_KEY}
+      - ROUTERAI_BASE_URL=${ROUTERAI_BASE_URL:-https://api.routerai.ru/v1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mcp-wb:
+        condition: service_started
+    restart: unless-stopped
+
   # === Агент: Контент-менеджер (Фаза 2) ===
   agent-wb-content:
     build:
