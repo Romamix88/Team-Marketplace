@@ -21,6 +21,8 @@ from mcp_wb.src.modules.analytics import ANALYTICS_HANDLERS, ANALYTICS_TOOLS
 from mcp_wb.src.modules.warehouses import WAREHOUSE_HANDLERS, WAREHOUSE_TOOLS
 from mcp_wb.src.modules.prices import PRICES_HANDLERS, PRICES_TOOLS
 from mcp_wb.src.modules.finance import FINANCE_HANDLERS, FINANCE_TOOLS
+from mcp_wb.src.modules.content import CONTENT_HANDLERS, CONTENT_TOOLS
+from mcp_wb.src.modules.advertising import ADVERTISING_HANDLERS, ADVERTISING_TOOLS
 from mcp_wb.src.wb_client import WBClient, WBApiError
 
 import structlog
@@ -31,10 +33,14 @@ logger = structlog.get_logger()
 _wb_clients: dict[str, WBClient] = {}
 
 # Объединённый реестр инструментов и обработчиков
-ALL_TOOLS = ANALYTICS_TOOLS + WAREHOUSE_TOOLS + PRICES_TOOLS + FINANCE_TOOLS
+ALL_TOOLS = (
+    ANALYTICS_TOOLS + WAREHOUSE_TOOLS + PRICES_TOOLS + FINANCE_TOOLS
+    + CONTENT_TOOLS + ADVERTISING_TOOLS
+)
 ALL_HANDLERS: dict[str, Any] = {
     **ANALYTICS_HANDLERS, **WAREHOUSE_HANDLERS,
     **PRICES_HANDLERS, **FINANCE_HANDLERS,
+    **CONTENT_HANDLERS, **ADVERTISING_HANDLERS,
 }
 
 
@@ -74,7 +80,7 @@ async def health() -> dict[str, Any]:
     """Проверка состояния сервера."""
     return {
         "status": "ok",
-        "modules": ["analytics", "warehouses", "prices", "finance"],
+        "modules": ["analytics", "warehouses", "prices", "finance", "content", "advertising"],
         "tools_count": len(ALL_TOOLS),
         "active_clients": list(_wb_clients.keys()),
     }

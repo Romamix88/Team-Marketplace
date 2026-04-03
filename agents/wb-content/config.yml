@@ -1,0 +1,7 @@
+agent_id: agent-wb-content
+model: claude-sonnet-4-6
+system_prompt_path: /app/agents/wb_content/prompts/system.md
+
+mcp_modules:
+  - content
+  - analytics

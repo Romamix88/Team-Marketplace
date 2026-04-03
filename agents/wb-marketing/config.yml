@@ -1,0 +1,7 @@
+agent_id: agent-wb-marketing
+model: claude-sonnet-4-6
+system_prompt_path: /app/agents/wb_marketing/prompts/system.md
+
+mcp_modules:
+  - advertising
+  - analytics
