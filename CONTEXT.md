@@ -13,46 +13,58 @@
 
 ### Фаза 1 ✅ Аналитик + Логист
 - MCP-WB: модули `prices` и `finance` (чтение)
-- agent-wb-analyst (DeepSeek V3): unit-экономика, ABC-анализ, рекомендации по ценам
-- agent-wb-logistics (Claude Sonnet 4.6): остатки, скорость продаж, план поставок
+- agent-wb-analyst (DeepSeek V3.2): unit-экономика, ABC-анализ, рекомендации по ценам
+- agent-wb-logistics (DeepSeek V3.2): остатки, скорость продаж, план поставок
 
 ### Фаза 2 ✅ Контент-менеджер + Маркетолог
 - MCP-WB: модули `content` (5 инструментов) и `advertising` (8 инструментов)
 - agent-wb-content (Claude Sonnet 4.6): SEO-оптимизация карточек, A/B тесты CTR
-- agent-wb-marketing (Claude Sonnet 4.6): управление рекламой, оптимизация ДРР
+- agent-wb-marketing (Grok 4.20): управление рекламой, оптимизация ДРР
 
 ### Фаза 3 ✅ Руководитель + Бухгалтер
-- agent-wb-manager (Claude Opus 4.6): координация команды, ежедневные/еженедельные сводки, декомпозиция целей, эскалация
-- agent-wb-accountant (DeepSeek V3): финансовые сверки, комиссии, штрафы, хранение
+- agent-wb-manager (Grok 4.20): координация команды, ежедневные/еженедельные сводки, декомпозиция целей, эскалация
+- agent-wb-accountant (DeepSeek V3.2): финансовые сверки, комиссии, штрафы, хранение
+
+### Безопасность VPS ✅
+- [x] Redis закрыт от внешнего доступа (expose only, не ports)
+- [x] Дашборд с авторизацией (HTTP Basic Auth, логин/пароль из .env)
+- [x] Firewall UFW: открыты только порты 22, 8080, 8001
+- [x] Fail2ban: защита SSH от brute-force
+- [x] SSH-ключ установлен (вход без пароля с ПК владельца)
+- [x] .dockerignore: секреты не попадают в Docker-образы
+- [x] Автообновления безопасности (unattended-upgrades)
+
+### RouterAI ✅
+- [x] API-ключ получен
+- [x] Base URL: `https://routerai.ru/api/v1`
+- [x] Модели настроены во всех конфигах агентов (RouterAI ID)
 
 ## Текущее состояние системы
 
-| Компонент | Статус | Детали |
+| Компонент | Статус | Модель / Детали |
 |---|---|---|
-| Redis | ✅ | Шина сообщений, healthy |
+| Redis | ✅ | Шина сообщений, закрыт снаружи |
 | MCP-WB | ✅ | 6 модулей, 28 инструментов |
-| agent-wb-manager | ✅ | Claude Opus 4.6 |
-| agent-wb-analyst | ✅ | DeepSeek V3 |
-| agent-wb-logistics | ✅ | Claude Sonnet 4.6 |
-| agent-wb-content | ✅ | Claude Sonnet 4.6 |
-| agent-wb-marketing | ✅ | Claude Sonnet 4.6 |
-| agent-wb-accountant | ✅ | DeepSeek V3 |
-| Telegram-бот | ✅ | Одобрения, команды |
-| Дашборд | ✅ | http://147.45.154.46:8080 |
+| agent-wb-manager | ✅ | `x-ai/grok-4.20` |
+| agent-wb-analyst | ✅ | `deepseek/deepseek-v3.2` |
+| agent-wb-logistics | ✅ | `deepseek/deepseek-v3.2` |
+| agent-wb-content | ✅ | `anthropic/claude-sonnet-4.6` |
+| agent-wb-marketing | ✅ | `x-ai/grok-4.20` |
+| agent-wb-accountant | ✅ | `deepseek/deepseek-v3.2` |
+| Telegram-бот | ✅ | Команды + одобрения |
+| Дашборд | ✅ | С авторизацией, http://147.45.154.46:8080 |
 
 ## Что дальше — возможные направления
 
 ### Тестирование и настройка
+- [ ] Добавить обработку свободных сообщений в Telegram-бот (чат с руководителем-агентом)
 - [ ] Тестирование каждого агента на реальных данных WB
 - [ ] Проверка approval flow: агент → Telegram → одобрение → выполнение
 - [ ] Настройка расписания ежедневных/еженедельных отчётов
-- [ ] Нагрузочное тестирование: все 6 агентов работают одновременно
 
 ### Улучшения
 - [ ] Масштабирование VPS (8 ГБ → 16 ГБ RAM при необходимости)
 - [ ] MCP-1С: остатки на складе компании, себестоимость (VPN + OData)
-- [ ] Безопасность VPS: firewall (UFW), SSH-ключи
-- [ ] Авторизация дашборда (логин/пароль)
 
 ### Масштабирование на другие маркетплейсы
 - [ ] MCP-сервер Ozon (`mcp-ozon/`)
@@ -71,6 +83,9 @@
 | 03.04.2026 | 6 раздельных WB-токенов | Минимальные привилегии |
 | 03.04.2026 | MCP — HTTP REST FastAPI | Пул клиентов по агентам |
 | 03.04.2026 | GitHub публичный | git pull без авторизации |
+| 03.04.2026 | RouterAI URL: routerai.ru/api/v1 | Правильный endpoint |
+| 03.04.2026 | Модели: Grok 4.20, DeepSeek V3.2, Claude Sonnet 4.6 | Подбор под задачу каждого агента |
+| 03.04.2026 | Безопасность VPS | UFW, авторизация, SSH-ключ, Fail2ban |
 
 ## Процесс деплоя обновлений на VPS
 
@@ -90,3 +105,4 @@ docker compose up -d --build
 | Инструментов MCP | 28 |
 | Контейнеров на VPS | 10 |
 | Все фазы | ✅ завершены |
+| Безопасность VPS | ✅ настроена |
