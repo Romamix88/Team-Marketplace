@@ -1,0 +1,12 @@
+agent_id: agent-wb-analyst
+model: deepseek-v3
+system_prompt_path: /app/agents/wb-analyst/prompts/system.md
+
+mcp_modules:
+  - analytics
+  - prices
+  - finance
+
+schedule:
+  daily_sales_report: "09:00"
+  daily_margin_report: "10:00"

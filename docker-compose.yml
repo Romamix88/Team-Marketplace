@@ -34,6 +34,42 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # === Агент: Аналитик (Фаза 1) ===
+  agent-wb-analyst:
+    build:
+      context: .
+      dockerfile: agents/wb-analyst/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_WB_URL=http://mcp-wb:8001
+      - ROUTERAI_API_KEY=${ROUTERAI_API_KEY}
+      - ROUTERAI_BASE_URL=${ROUTERAI_BASE_URL:-https://api.routerai.ru/v1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mcp-wb:
+        condition: service_started
+    restart: unless-stopped
+
+  # === Агент: Логист (Фаза 1) ===
+  agent-wb-logistics:
+    build:
+      context: .
+      dockerfile: agents/wb-logistics/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_WB_URL=http://mcp-wb:8001
+      - ROUTERAI_API_KEY=${ROUTERAI_API_KEY}
+      - ROUTERAI_BASE_URL=${ROUTERAI_BASE_URL:-https://api.routerai.ru/v1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mcp-wb:
+        condition: service_started
+    restart: unless-stopped
+
   # === Telegram-бот ===
   telegram-bot:
     build:

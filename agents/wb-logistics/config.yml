@@ -1,0 +1,11 @@
+agent_id: agent-wb-logistics
+model: claude-sonnet-4-6
+system_prompt_path: /app/agents/wb-logistics/prompts/system.md
+
+mcp_modules:
+  - warehouses
+  - analytics
+
+schedule:
+  daily_stock_check: "08:00"
+  supply_plan_review: "11:00"

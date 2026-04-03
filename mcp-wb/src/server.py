@@ -19,6 +19,8 @@ from shared.models import ToolCallRequest, ToolCallResponse
 from mcp_wb.src.auth.access import check_access, filter_tools, get_agent_token
 from mcp_wb.src.modules.analytics import ANALYTICS_HANDLERS, ANALYTICS_TOOLS
 from mcp_wb.src.modules.warehouses import WAREHOUSE_HANDLERS, WAREHOUSE_TOOLS
+from mcp_wb.src.modules.prices import PRICES_HANDLERS, PRICES_TOOLS
+from mcp_wb.src.modules.finance import FINANCE_HANDLERS, FINANCE_TOOLS
 from mcp_wb.src.wb_client import WBClient, WBApiError
 
 import structlog
@@ -29,8 +31,11 @@ logger = structlog.get_logger()
 _wb_clients: dict[str, WBClient] = {}
 
 # Объединённый реестр инструментов и обработчиков
-ALL_TOOLS = ANALYTICS_TOOLS + WAREHOUSE_TOOLS
-ALL_HANDLERS: dict[str, Any] = {**ANALYTICS_HANDLERS, **WAREHOUSE_HANDLERS}
+ALL_TOOLS = ANALYTICS_TOOLS + WAREHOUSE_TOOLS + PRICES_TOOLS + FINANCE_TOOLS
+ALL_HANDLERS: dict[str, Any] = {
+    **ANALYTICS_HANDLERS, **WAREHOUSE_HANDLERS,
+    **PRICES_HANDLERS, **FINANCE_HANDLERS,
+}
 
 
 def _get_or_create_client(agent_id: str) -> WBClient | None:
@@ -69,7 +74,7 @@ async def health() -> dict[str, Any]:
     """Проверка состояния сервера."""
     return {
         "status": "ok",
-        "modules": ["analytics", "warehouses"],
+        "modules": ["analytics", "warehouses", "prices", "finance"],
         "tools_count": len(ALL_TOOLS),
         "active_clients": list(_wb_clients.keys()),
     }
