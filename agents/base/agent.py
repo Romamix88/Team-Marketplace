@@ -187,8 +187,13 @@ class BaseAgent:
 
     async def _run_llm_loop(self, task: Task) -> dict[str, Any]:
         """Цикл взаимодействия с LLM и вызовов инструментов."""
+        from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        system_with_date = f"{self._system_prompt}\n\n## Текущая дата и время\n{now}"
+
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": self._system_prompt},
+            {"role": "system", "content": system_with_date},
             {
                 "role": "user",
                 "content": f"Задача: {task.type}\n\nДанные: {json.dumps(task.payload, ensure_ascii=False)}",
