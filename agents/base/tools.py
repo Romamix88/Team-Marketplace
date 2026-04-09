@@ -64,7 +64,9 @@ class RouterAIClient:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """Вызвать chat/completions с опциональным tool calling."""
+        """Вызвать chat/completions с опциональным tool calling и retry."""
+        import asyncio
+
         payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
@@ -83,11 +85,49 @@ class RouterAIClient:
             ]
 
         logger.debug("llm_request", model=self._model, messages_count=len(messages))
-        resp = await self._client.post("/chat/completions", json=payload)
-        resp.raise_for_status()
-        data = resp.json()
-        logger.debug("llm_response", model=self._model, usage=data.get("usage"))
-        return data
+
+        # Retry с exponential backoff (1s, 2s, 4s)
+        max_retries = 3
+        last_error: Exception | None = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                resp = await self._client.post("/chat/completions", json=payload)
+
+                # Retry на 5xx и 429
+                if resp.status_code in (429, 500, 502, 503, 504):
+                    if attempt < max_retries:
+                        wait = 2**attempt
+                        logger.warning(
+                            "llm_retry",
+                            model=self._model,
+                            status=resp.status_code,
+                            attempt=attempt + 1,
+                            wait=wait,
+                        )
+                        await asyncio.sleep(wait)
+                        continue
+                    # Последняя попытка — поднимаем понятную ошибку
+                    raise RuntimeError(
+                        f"RouterAI недоступен (HTTP {resp.status_code}) — "
+                        f"модель: {self._model}. Попробуйте позже."
+                    )
+
+                resp.raise_for_status()
+                data = resp.json()
+                logger.debug("llm_response", model=self._model, usage=data.get("usage"))
+                return data
+
+            except httpx.TimeoutException as exc:
+                last_error = exc
+                if attempt < max_retries:
+                    wait = 2**attempt
+                    logger.warning("llm_timeout", model=self._model, attempt=attempt + 1, wait=wait)
+                    await asyncio.sleep(wait)
+                    continue
+                raise RuntimeError(f"RouterAI timeout — модель: {self._model}") from exc
+
+        raise last_error or RuntimeError("RouterAI: все попытки исчерпаны")
 
     async def close(self) -> None:
         """Закрыть HTTP-клиент."""
